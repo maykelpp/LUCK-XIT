@@ -727,6 +727,31 @@
 @media(max-width:480px){.lx-module-grid{grid-template-columns:1fr}}
 
 /* LUCK MUSIC module */
+/* LUCK MUSIC layout and playback fixes */
+.lx-music-app,.lx-music-app *{box-sizing:border-box;min-width:0}
+.lx-music-app{width:100%;max-width:100%;overflow:hidden}
+.lm-heading>div{min-width:0;flex:1}
+.lm-heading h2,.lm-heading p{overflow-wrap:anywhere}
+.lm-search{width:100%;max-width:100%;min-width:0}
+.lm-search input{width:0;max-width:100%;font-size:16px}
+.lm-search button{flex:0 0 auto;white-space:nowrap}
+.lm-tabs{max-width:100%;width:100%;overscroll-behavior-x:contain}
+.lm-results{width:100%;max-width:100%;min-width:0;grid-template-columns:minmax(0,1fr)}
+.lm-track{width:100%;max-width:100%;min-width:0;overflow:hidden}
+.lm-track-info{flex:1 1 0;min-width:0;overflow:hidden}
+.lm-track-actions{flex:0 0 auto;max-width:42%;flex-wrap:wrap;justify-content:flex-end}
+.lm-track-actions button{min-width:34px;min-height:36px;padding:7px}
+.lm-track img{flex:0 0 48px;width:48px;height:48px}
+.lm-player{width:100%;max-width:100%;min-width:0;position:relative;bottom:auto}
+.lm-player audio{display:block;width:100%;max-width:100%;min-width:0}
+.lm-player-actions button{min-width:0;flex:1 1 28%;white-space:normal}
+.lm-lyrics{overflow-wrap:anywhere;max-width:100%}
+.lm-download-panel{margin-top:14px;padding:12px;border:1px solid #00d9ff55;border-radius:12px;background:#071321}
+.lm-download-panel label{display:block;margin:9px 0;color:#c8d9ee;font-size:.75rem}
+.lm-download-panel input{display:block;width:100%;max-width:100%;margin-top:5px;padding:9px;border:1px solid #00d9ff55;border-radius:8px;background:#0a1a2b;color:white;font-size:16px}
+.lm-download-panel button{width:100%;padding:12px;border:1px solid #00d9ff88;border-radius:9px;background:#063344;color:white}
+@media(max-width:420px){.lm-track{gap:7px;padding:7px}.lm-track img{width:42px;height:42px;flex-basis:42px}.lm-track-actions{max-width:38%;gap:3px}.lm-track-actions button{padding:6px;min-width:30px}.lm-player-actions button{font-size:.65rem;padding:9px 5px}}
+
 .lx-music-app{width:100%;}.lm-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:20px 0}.lm-kicker{font-size:.65rem;letter-spacing:2px;color:#00faff}.lm-heading h2{font:900 1.8rem Orbitron,sans-serif;margin:5px 0}.lm-heading h2 b{color:#00faff}.lm-heading p,.lm-note{font-size:.76rem;color:#9aa8bd}.lm-disc{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font-size:2rem;background:radial-gradient(circle,#07111e 25%,#00d9ff 27%,#111 32%,#18213a 70%);box-shadow:0 0 22px #00d9ff66}.lm-search{display:flex;gap:8px;margin:16px 0}.lm-search input{min-width:0;flex:1;padding:13px;border-radius:10px;border:1px solid #00d9ff66;background:#07111eee;color:white}.lm-search button,.lm-player-actions button,.lm-secondary{padding:10px 13px;border:1px solid #00d9ff66;border-radius:9px;background:#062334;color:white;font-size:.72rem}.lm-tabs{display:flex;gap:6px;overflow-x:auto;padding:5px 0 12px}.lm-tabs button{flex:0 0 auto;padding:9px 12px;border:1px solid #ffffff22;border-radius:9px;background:#101b2c;color:#cbd5e1;font-size:.68rem}.lm-tabs button.active{border-color:#00d9ff;background:#063344;color:white}.lm-pane{display:none}.lm-pane.active{display:block}.lm-section-title{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:16px 0 10px;font:700 .78rem Orbitron,sans-serif;color:#00eaff}.lm-section-title small{font:400 .65rem Poppins,sans-serif;color:#8c9aaf}.lm-results{display:grid;gap:8px}.lm-track{display:flex;align-items:center;gap:10px;padding:9px;border:1px solid #ffffff18;border-radius:11px;background:#081728}.lm-track img{width:52px;height:52px;border-radius:8px;object-fit:cover;background:#17263a}.lm-track-info{flex:1;min-width:0}.lm-track-info strong,.lm-track-info small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lm-track-info strong{font-size:.78rem}.lm-track-info small{font-size:.67rem;color:#94a3b8;margin-top:4px}.lm-track-actions{display:flex;gap:5px}.lm-track-actions button{padding:8px;border:1px solid #00d9ff44;border-radius:8px;background:#10283a;color:white}.lm-empty{padding:20px;text-align:center;color:#8290a5;font-size:.78rem;border:1px dashed #ffffff22;border-radius:10px}.lm-file{display:block;padding:12px;border:1px dashed #00d9ff66;border-radius:10px;color:#bdefff;font-size:.76rem;text-align:center}.lm-file input{display:block;margin:8px auto 0;max-width:100%}.lm-player{position:sticky;bottom:90px;margin-top:18px;padding:14px;border:1px solid #00d9ff55;border-radius:14px;background:#071321f2;box-shadow:0 0 24px #00d9ff22;z-index:4}.lm-now{display:flex;align-items:center;gap:10px;margin-bottom:10px}.lm-now img{width:48px;height:48px;border-radius:8px;object-fit:cover}.lm-now strong,.lm-now small{display:block}.lm-now strong{font-size:.8rem}.lm-now small{font-size:.68rem;color:#9aa8bd;margin-top:3px}.lm-player audio{width:100%;height:38px}.lm-player-actions{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.lm-player-actions button{flex:1;min-width:58px}.lm-note{line-height:1.5;margin-top:7px}.lm-lyrics{padding:14px;border-radius:10px;background:#06111f;color:#dbeafe;white-space:pre-wrap;line-height:1.9;min-height:100px;font-size:.82rem}.lm-lyrics .current{color:#00faff;font-weight:bold;text-shadow:0 0 12px #00d9ff}.lm-track-actions button:disabled{opacity:.4}
 
 </style>
@@ -861,6 +886,16 @@
         <div id="lmLibrary" class="lm-pane"><div class="lm-section-title">TUS FAVORITOS <small>Guardados en este dispositivo</small></div><div id="lmFavorites" class="lm-results"></div><div class="lm-section-title">ARCHIVOS LOCALES <small>Audio de tu dispositivo</small></div><label class="lm-file">＋ Seleccionar archivos de audio<input id="lmLocalFiles" type="file" accept="audio/*" multiple></label><div id="lmLocalList" class="lm-results"></div></div>
         <div id="lmPlaylist" class="lm-pane"><div class="lm-section-title">COLA DE REPRODUCCIÓN <small id="lmQueueCount">0 canciones</small></div><div id="lmQueue" class="lm-results"></div><button id="lmClearQueue" class="lm-secondary" type="button">Vaciar cola</button></div>
         <div id="lmLyrics" class="lm-pane"><div class="lm-section-title">LETRAS <small>Consulta automática por canción</small></div><div id="lmLyricsContent" class="lm-lyrics">Reproduce una canción y consulta sus letras aquí. La sincronización depende de que LRCLIB disponga de timestamps.</div></div>
+        <div class="lm-download-panel">
+          <div class="lm-section-title">EXPORTAR AUDIO <small>MP3 propio o autorizado</small></div>
+          <label>Archivo MP3<input id="lmExportAudio" type="file" accept=".mp3,audio/mpeg"></label>
+          <label>Nombre de la canción<input id="lmExportTitle" maxlength="160" placeholder="Nombre de la canción"></label>
+          <label>Artista<input id="lmExportArtist" maxlength="160" placeholder="Artista"></label>
+          <label>Álbum<input id="lmExportAlbum" maxlength="160" placeholder="Álbum (opcional)"></label>
+          <label>Portada original (opcional)<input id="lmExportCover" type="file" accept="image/jpeg,image/png,image/webp"></label>
+          <button id="lmExportBtn" type="button">DESCARGAR MP3 CON PORTADA LUCK</button>
+          <p class="lm-note">Se incrustan título, artista, álbum y portada con marca LUCK MUSIC. No se descargan canciones completas desde las vistas previas del catálogo.</p>
+        </div>
         <div class="lm-player" id="lmPlayer">
           <div class="lm-now"><img id="lmCover" src="" alt="" hidden><div><strong id="lmNowTitle">Nada reproduciéndose</strong><small id="lmNowArtist">Elige una canción o un archivo local</small></div></div>
           <audio id="lmAudio" controls preload="none"></audio>
@@ -1283,6 +1318,27 @@
     lmAudio.addEventListener('timeupdate',()=>{if(!lmLyricsLines.length)return;let active=-1;lmLyricsLines.forEach((l,i)=>{if(l.time<=lmAudio.currentTime)active=i;});document.querySelectorAll('[data-lmline]').forEach(el=>el.classList.toggle('current',Number(el.dataset.lmline)===active));});
     document.getElementById('lmLocalFiles').addEventListener('change',e=>{const root=document.getElementById('lmLocalList');lmLocalUrls.forEach(URL.revokeObjectURL);lmLocalUrls=[];const files=Array.from(e.target.files||[]);root.innerHTML=files.map((f,i)=>{const url=URL.createObjectURL(f);lmLocalUrls.push(url);const t={id:'local-'+i+'-'+f.name,title:f.name.replace(/\\.[^.]+$/,''),artist:'Archivo local',album:'Dispositivo',url,artwork:'',duration:0,local:true};return '<article class="lm-track"><div class="lm-track-info"><strong>'+lmEsc(t.title)+'</strong><small>'+lmEsc(f.name)+' · '+Math.round(f.size/1024)+' KB</small></div><div class="lm-track-actions"><button type="button" data-local-index="'+i+'">▶</button></div></article>';}).join('')||'<div class="lm-empty">No se seleccionaron archivos.</div>';root.querySelectorAll('[data-local-index]').forEach(b=>b.addEventListener('click',()=>{const f=files[Number(b.dataset.localIndex)];const url=lmLocalUrls[Number(b.dataset.localIndex)];lmPlay({id:'local-'+f.name,title:f.name,artist:'Archivo local',url,artwork:''});}));});
     
+
+    // Exportación de MP3 propios/autorizados con etiquetas y portada de marca.
+    document.getElementById('lmExportBtn').addEventListener('click',async()=>{
+      const audioFile=document.getElementById('lmExportAudio').files[0];
+      const title=document.getElementById('lmExportTitle').value.trim();
+      const artist=document.getElementById('lmExportArtist').value.trim();
+      const album=document.getElementById('lmExportAlbum').value.trim();
+      const coverFile=document.getElementById('lmExportCover').files[0];
+      if(!audioFile||!title||!artist){alert('Selecciona un MP3 e indica título y artista.');return;}
+      const btn=document.getElementById('lmExportBtn');btn.disabled=true;btn.textContent='PREPARANDO MP3…';
+      try{
+        const form=new FormData();form.append('audio',audioFile);form.append('title',title);form.append('artist',artist);form.append('album',album);
+        if(coverFile)form.append('cover',coverFile);
+        const response=await fetch('/api/music/export-mp3',{method:'POST',body:form});
+        if(!response.ok){let msg='No se pudo preparar el MP3';try{msg=(await response.json()).error||msg;}catch(_){}throw new Error(msg);}
+        const blob=await response.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=(title+' - '+artist+'.mp3').replace(/[\\/:*?"<>|]/g,'_');document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+        btn.textContent='MP3 DESCARGADO';
+      }catch(e){alert(e.message);btn.textContent='DESCARGAR MP3 CON PORTADA LUCK';}
+      finally{btn.disabled=false;}
+    });
+
     // Efecto de glitch aleatorio en el logo
     setInterval(() => {
       if(Math.random() > 0.95) {
