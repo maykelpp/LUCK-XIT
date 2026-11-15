@@ -1019,9 +1019,7 @@
         }
         
         const disposition = res.headers.get('content-disposition') || '';
-        const match = disposition.match(/filename[^;=
-]*=((['"]).*?\2|[^;
-]*)/);
+        const match = disposition.match(/filename[^;=\\n]*=((['"]).*?\\2|[^;\\n]*)/);
         let filename = 'download';
         if (match && match[1]) {
           filename = match[1].replace(/['"]/g, '');
