@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LUCK XIT ⚡ Media Downloader</title>
+  <title>LUCK XIT | Media Downloader</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Poppins:wght@400;600&display=swap');
 
@@ -657,7 +657,17 @@
     .lx-entry-actions{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
     .lx-entry-actions button{padding:8px 11px;font:600 .72rem 'Poppins',sans-serif;letter-spacing:0;border-radius:7px}
     .lx-empty{text-align:center;color:#888;padding:15px;font-size:.82rem}
-\n  </style>
+
+  
+    .lx-library-nav{position:sticky;top:10px;z-index:20;display:flex;gap:7px;justify-content:center;margin:0 auto 1.5rem;padding:7px;border:1px solid rgba(255,255,255,.22);border-radius:16px;background:rgba(255,255,255,.09);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);box-shadow:0 8px 30px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.12)}
+    .lx-library-nav button{min-width:0;padding:11px 13px;border:1px solid transparent;border-radius:11px;background:transparent;color:#dcecff;font:600 .75rem 'Poppins',sans-serif;letter-spacing:.35px;text-transform:uppercase}
+    .lx-library-nav button.active{background:linear-gradient(135deg,rgba(106,0,255,.72),rgba(0,220,255,.25));border-color:rgba(0,250,255,.5);box-shadow:0 0 18px rgba(0,250,255,.18);color:#fff}
+    .input-wrapper input{background:rgba(10,25,48,.72);border-color:rgba(0,250,255,.42);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    .preview-container,.lx-library{background:rgba(5,20,38,.78);border-color:rgba(255,255,255,.22);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+    .lx-entry{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.16)}
+    @media(max-width:600px){.lx-library-nav{gap:4px;padding:5px}.lx-library-nav button{padding:10px 7px;font-size:.67rem}}
+
+  </style>
 </head>
 <body>
   <div class="bg">
@@ -713,6 +723,11 @@
       </div>
 
       <p class="subtitle">Descarga y previsualiza contenido de TikTok/Instagram</p>
+      <div class="lx-library-nav">
+        <button type="button" id="lxShowMain" class="active">Descargador</button>
+        <button type="button" id="lxShowDownloads">Descargas</button>
+        <button type="button" id="lxShowHistory">Historial</button>
+      </div>
 
       <div class="input-wrapper">
         <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -757,9 +772,10 @@
         </button>
       </div>
 
-      <p id="status"></p>\n
+      <p id="status"></p>
+
       <div class="lx-library-nav">
-        <button type="button" id="lxShowMain" class="active">⚡ Descargador</button>
+        <button type="button" id="lxShowMain" class="active"> Descargador</button>
         <button type="button" id="lxShowDownloads">⇩ Descargas</button>
         <button type="button" id="lxShowHistory">◷ Historial</button>
       </div>
@@ -772,7 +788,8 @@
   <footer>LUCK XIT © 2025 – Powered by yt-dlp + gallery-dl</footer>
 
   <script>
-    let previewData = null;\n
+    let previewData = null;
+
     const LX_HISTORY_KEY = 'luckxit_history_v1';
     const LX_DOWNLOADS_KEY = 'luckxit_downloads_v1';
     let lxHistory = JSON.parse(localStorage.getItem(LX_HISTORY_KEY) || '[]');
@@ -839,7 +856,7 @@
       const previewContainer = document.getElementById('preview');
       
       if(!url){ 
-        status.innerHTML = '⚠ Pega un enlace válido primero';
+        status.innerHTML = ' Pega un enlace válido primero';
         status.style.color = '#ff0088';
         setTimeout(() => status.innerHTML = '', 3000);
         return;
@@ -856,12 +873,13 @@
         
         if(!res.ok){
           const j = await res.json().catch(()=>null);
-          status.innerHTML = '✗ Error: ' + (j && j.error ? j.error : res.statusText);
+          status.innerHTML = ' Error: ' + (j && j.error ? j.error : res.statusText);
           status.style.color = '#ff0088';
           return;
         }
 
         previewData = await res.json();
+        if(previewData.success){const entry={url,title:previewData.title||url,kind:previewData.type||"video",date:new Date().toLocaleString()};lxHistory=[entry,...lxHistory.filter(x=>x.url!==url)].slice(0,80);lxSave();}
         
         if(previewData.success) {
           let html = '';
@@ -871,7 +889,7 @@
             carouselImages = previewData.images;
             
             html = `
-              <span class="media-type-badge badge-gallery">📸 GALERÍA - ${carouselImages.length} IMÁGENES (PNG/JPG)</span>
+              <span class="media-type-badge badge-gallery"> GALERÍA - ${carouselImages.length} IMÁGENES (PNG/JPG)</span>
               <div class="preview-title">${previewData.title || 'Galería de Instagram'}</div>
               <div class="carousel-container">
                 <div class="carousel-wrapper">
@@ -896,7 +914,7 @@
                 </div>
               ` : ''}
               <div class="preview-info">
-                <div>📦 Al descargar obtendrás un archivo ZIP con todas las imágenes</div>
+                <div> Al descargar obtendrás un archivo ZIP con todas las imágenes</div>
               </div>
             `;
             document.getElementById('btnGallery').style.display = 'flex';
@@ -905,7 +923,7 @@
             
           } else if (previewData.type === 'video') {
             html = `
-              <span class="media-type-badge badge-video">🎬 VIDEO (MP4)</span>
+              <span class="media-type-badge badge-video"> VIDEO (MP4)</span>
               <div class="preview-title">${previewData.title || 'Video'}</div>
               ${previewData.video_url ? `
                 <video controls class="preview-video" controlsList="nodownload">
@@ -915,13 +933,13 @@
               ` : previewData.thumbnail ? `
                 <img src="${previewData.thumbnail}" class="preview-video" alt="Miniatura del video">
                 <div class="preview-info" style="color: #ffaa00; margin-top: 1rem;">
-                  ⚠ Vista previa no disponible - Descarga para ver el video completo
+                   Vista previa no disponible - Descarga para ver el video completo
                 </div>
               ` : ''}
               <div class="preview-info">
-                ${previewData.uploader ? `<div>👤 ${previewData.uploader}</div>` : ''}
-                ${previewData.duration ? `<div>⏱ Duración: ${Math.floor(previewData.duration / 60)}:${String(Math.floor(previewData.duration % 60)).padStart(2, '0')}</div>` : ''}
-                ${previewData.view_count ? `<div>👁 ${previewData.view_count.toLocaleString()} vistas</div>` : ''}
+                ${previewData.uploader ? `<div> ${previewData.uploader}</div>` : ''}
+                ${previewData.duration ? `<div> Duración: ${Math.floor(previewData.duration / 60)}:${String(Math.floor(previewData.duration % 60)).padStart(2, '0')}</div>` : ''}
+                ${previewData.view_count ? `<div> ${previewData.view_count.toLocaleString()} vistas</div>` : ''}
               </div>
             `;
             document.getElementById('btnGallery').style.display = 'none';
@@ -930,7 +948,7 @@
             
           } else if (previewData.type === 'audio') {
             html = `
-              <span class="media-type-badge badge-audio">🎵 AUDIO (MP3)</span>
+              <span class="media-type-badge badge-audio"> AUDIO (MP3)</span>
               <div class="preview-title">${previewData.title || 'Audio'}</div>
               ${previewData.audio_url ? `
                 <audio controls class="preview-audio">
@@ -942,8 +960,8 @@
                 <img src="${previewData.thumbnail}" style="width: 200px; height: 200px; object-fit: cover; border-radius: 10px; margin: 1rem auto; display: block;" alt="Portada">
               ` : ''}
               <div class="preview-info">
-                ${previewData.uploader ? `<div>👤 ${previewData.uploader}</div>` : ''}
-                ${previewData.duration ? `<div>⏱ Duración: ${Math.floor(previewData.duration / 60)}:${String(Math.floor(previewData.duration % 60)).padStart(2, '0')}</div>` : ''}
+                ${previewData.uploader ? `<div> ${previewData.uploader}</div>` : ''}
+                ${previewData.duration ? `<div> Duración: ${Math.floor(previewData.duration / 60)}:${String(Math.floor(previewData.duration % 60)).padStart(2, '0')}</div>` : ''}
               </div>
             `;
             document.getElementById('btnGallery').style.display = 'none';
@@ -953,12 +971,12 @@
           
           previewContainer.innerHTML = html;
           previewContainer.classList.add('active');
-          status.innerHTML = '✓ Vista previa cargada';
+          status.innerHTML = ' Vista previa cargada';
           status.style.color = '#00ff88';
           setTimeout(() => status.innerHTML = '', 3000);
         }
       }catch(err){
-        status.innerHTML = '⚠ Error: ' + err.message;
+        status.innerHTML = ' Error: ' + err.message;
         status.style.color = '#ff0088';
       }
     }
@@ -968,7 +986,7 @@
       const status = document.getElementById('status');
       
       if(!url){ 
-        status.innerHTML = '⚠ Pega un enlace válido primero';
+        status.innerHTML = ' Pega un enlace válido primero';
         status.style.color = '#ff0088';
         setTimeout(() => status.innerHTML = '', 3000);
         return;
@@ -994,14 +1012,16 @@
         
         if(!res.ok){
           const j = await res.json().catch(()=>null);
-          status.innerHTML = '✗ Error: ' + (j && j.error ? j.error : res.statusText);
+          status.innerHTML = ' Error: ' + (j && j.error ? j.error : res.statusText);
           status.style.color = '#ff0088';
           buttons.forEach(btn => btn.disabled = false);
           return;
         }
         
         const disposition = res.headers.get('content-disposition') || '';
-        const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        const match = disposition.match(/filename[^;=
+]*=((['"]).*?\2|[^;
+]*)/);
         let filename = 'download';
         if (match && match[1]) {
           filename = match[1].replace(/['"]/g, '');
@@ -1024,12 +1044,13 @@
         a.remove();
         URL.revokeObjectURL(urlBlob);
         
-        const savedItem={url,title:filename,kind,date:new Date().toLocaleString()};lxDownloads=[savedItem,...lxDownloads].slice(0,80);lxHistory=[savedItem,...lxHistory.filter(x=>x.url!==url)].slice(0,80);lxSave();\n        status.innerHTML = `✓ ${downloadType} descargado: ${filename}`;
+        const savedItem={url,title:filename,kind,date:new Date().toLocaleString()};lxDownloads=[savedItem,...lxDownloads].slice(0,80);lxHistory=[savedItem,...lxHistory.filter(x=>x.url!==url)].slice(0,80);lxSave();
+        status.innerHTML = ` ${downloadType} descargado: ${filename}`;
         status.style.color = '#00ff88';
         setTimeout(() => status.innerHTML = '', 5000);
         buttons.forEach(btn => btn.disabled = false);
       }catch(err){
-        status.innerHTML = '⚠ Error: ' + err.message;
+        status.innerHTML = ' Error: ' + err.message;
         status.style.color = '#ff0088';
         buttons.forEach(btn => btn.disabled = false);
       }
