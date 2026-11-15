@@ -775,7 +775,7 @@
         <div class="logo-text">LUCK XIT</div>
       </div>
 
-      <p class="subtitle">Descarga y previsualiza contenido de TikTok/Instagram</p>
+      <p class="subtitle" id="lxSubtitle">Descarga y previsualiza contenido de TikTok/Instagram</p>
       
 
       <div class="input-wrapper">
@@ -886,6 +886,14 @@
     }
     function lxView(view){
       const main=view==='main';
+      const subtitles={
+        main:'Descarga y previsualiza contenido de TikTok/Instagram',
+        downloads:'Administra tus archivos descargados',
+        history:'Consulta tus descargas recientes',
+        settings:'Personaliza tu experiencia en LUCK XIT',
+        privacy:'Conoce cómo se maneja tu información'
+      };
+      document.getElementById('lxSubtitle').textContent=subtitles[view]||subtitles.main;
       document.getElementById('preview').style.display=main?'':'none';
       document.querySelector('.input-wrapper').style.display=main?'':'none';
       document.querySelector('.preview-btn').style.display=main?'':'none';
