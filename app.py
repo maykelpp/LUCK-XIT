@@ -361,36 +361,59 @@ def download():
 
 @app.route('/api/music/search', methods=['GET'])
 def music_search():
-    """Busca metadatos y previews oficiales del catálogo de iTunes."""
+    """Busca videos musicales mediante YouTube Data API v3."""
+    import re
     query = request.args.get('q', '').strip()[:160]
+    api_key = os.environ.get('YOUTUBE_API_KEY', '').strip()
     if not query:
         return jsonify({'results': []})
+    if not api_key:
+        return jsonify({'error': 'Falta configurar YOUTUBE_API_KEY en las variables de Render.'}), 503
     try:
-        response = requests.get('https://itunes.apple.com/search', params={
-            'term': query, 'entity': 'song', 'limit': 24, 'country': 'EC'
-        }, timeout=15, headers={'User-Agent': 'LUCK-XIT/1.0'})
-        response.raise_for_status()
-        payload = response.json()
+        search_response = requests.get('https://www.googleapis.com/youtube/v3/search', params={
+            'part': 'snippet', 'q': query, 'type': 'video', 'videoCategoryId': '10',
+            'maxResults': 20, 'regionCode': 'EC', 'key': api_key
+        }, timeout=15)
+        if search_response.status_code == 403:
+            return jsonify({'error': 'YouTube rechazó la consulta. Revisa la API key, la cuota y YouTube Data API v3.'}), 502
+        search_response.raise_for_status()
+        items = search_response.json().get('items', [])
+        ids = [item.get('id', {}).get('videoId') for item in items]
+        ids = [video_id for video_id in ids if video_id]
+        durations = {}
+        if ids:
+            details = requests.get('https://www.googleapis.com/youtube/v3/videos', params={
+                'part': 'contentDetails,status', 'id': ','.join(ids), 'key': api_key
+            }, timeout=15)
+            details.raise_for_status()
+            for item in details.json().get('items', []):
+                if not item.get('status', {}).get('embeddable', True):
+                    continue
+                raw = item.get('contentDetails', {}).get('duration', '')
+                match = re.fullmatch(r'PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?', raw)
+                if match:
+                    h, m, sec = (int(x or 0) for x in match.groups())
+                    total = h * 3600 + m * 60 + sec
+                    durations[item['id']] = f'{total // 60}:{total % 60:02d}' if total < 3600 else f'{total // 3600}:{(total % 3600) // 60:02d}:{total % 60:02d}'
         results = []
-        for item in payload.get('results', []):
-            preview = item.get('previewUrl')
-            if not preview:
+        for item in items:
+            video_id = item.get('id', {}).get('videoId')
+            snippet = item.get('snippet', {})
+            if not video_id or video_id not in durations:
                 continue
+            thumbs = snippet.get('thumbnails', {})
+            thumb = (thumbs.get('high') or thumbs.get('medium') or thumbs.get('default') or {}).get('url', '')
             results.append({
-                'id': str(item.get('trackId', preview)),
-                'title': item.get('trackName', 'Sin título'),
-                'artist': item.get('artistName', 'Artista desconocido'),
-                'album': item.get('collectionName', ''),
-                'artwork': item.get('artworkUrl100', '').replace('100x100bb', '300x300bb'),
-                'url': preview,
-                'duration': round((item.get('trackTimeMillis') or 0) / 1000),
-                'preview': True
+                'id': video_id, 'videoId': video_id,
+                'title': snippet.get('title', 'Sin título'),
+                'artist': snippet.get('channelTitle', 'Canal de YouTube'),
+                'album': 'YouTube', 'artwork': thumb,
+                'url': 'https://www.youtube.com/watch?v=' + video_id,
+                'durationText': durations[video_id], 'preview': False, 'source': 'YouTube'
             })
-        return jsonify({'results': results, 'source': 'iTunes Search API'})
+        return jsonify({'results': results, 'source': 'YouTube Data API v3'})
     except requests.RequestException as exc:
-        return jsonify({'error': 'No se pudo consultar el catálogo musical: ' + str(exc)}), 502
-    except (ValueError, TypeError) as exc:
-        return jsonify({'error': 'Respuesta de catálogo no válida: ' + str(exc)}), 502
+        return jsonify({'error': 'No se pudo consultar YouTube: ' + str(exc)}), 502
 
 @app.route('/api/music/lyrics', methods=['GET'])
 def music_lyrics():
