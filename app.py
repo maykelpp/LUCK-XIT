@@ -7,7 +7,6 @@ from pathlib import Path
 import time
 import shutil
 import requests
-from flask import redirect
 
 app = Flask(__name__)
 
