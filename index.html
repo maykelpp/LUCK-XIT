@@ -675,6 +675,28 @@
     @media(max-width:480px){.lx-library-nav{bottom:12px!important;gap:3px;padding:6px}.lx-library-nav button{min-width:0;padding:10px 11px;font-size:.68rem}}
 
 
+
+    .lx-custom-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:14px 0}
+    .lx-control{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(255,255,255,.045);color:#dcecff;font-size:.78rem}
+    .lx-control input[type=color]{width:100%;height:38px;border:0;background:transparent}
+    .lx-control input[type=range]{width:100%;accent-color:var(--lx-accent,#00faff)}
+    .lx-control input[type=checkbox]{width:20px;height:20px;accent-color:var(--lx-accent,#00faff)}
+    .lx-control select{width:100%;padding:9px;border-radius:8px;border:1px solid rgba(0,250,255,.3);background:#10182a;color:#fff}
+    .lx-settings-actions{display:flex;gap:8px;margin:12px 0}
+    .lx-settings-actions button,.lx-policy-link{padding:10px 13px;border:1px solid var(--lx-accent,#00faff);border-radius:9px;background:rgba(0,20,40,.75);color:#fff;font:600 .75rem 'Poppins',sans-serif}
+    body.lx-compact .box{padding:1.5rem}
+    body.lx-compact .logo-container{margin-bottom:1rem}
+    body.lx-text-small{font-size:14px}
+    body.lx-text-large{font-size:18px}
+    body.lx-bg-dark .bg{background:#030306}
+    body.lx-bg-midnight .bg{background:radial-gradient(circle at 50% 30%,#10213d,#030611 70%)}
+    body.lx-bg-solid .bg{background:#080b12}
+    body.lx-no-bg-motion .bg,body.lx-no-bg-motion .circle{animation:none!important}
+    body.lx-no-glow .box{box-shadow:none!important}
+    body.lx-button-solid button.btn-video,body.lx-button-solid button.btn-audio,body.lx-button-solid button.btn-gallery{background:var(--lx-accent)!important;color:#05070c!important}
+    body.lx-button-outline button.btn-video,body.lx-button-outline button.btn-audio,body.lx-button-outline button.btn-gallery{background:transparent!important;border:1px solid var(--lx-accent)!important;color:var(--lx-accent)!important;box-shadow:0 0 12px color-mix(in srgb,var(--lx-accent) 30%,transparent)!important}
+    @media(max-width:600px){.lx-custom-grid{grid-template-columns:1fr}}
+
     .lx-library-nav{animation:lxFloatIn .65s cubic-bezier(.2,.8,.2,1) both}
     .lx-library-nav button{transition:transform .22s ease,background .3s ease,box-shadow .3s ease,border-color .3s ease}
     .lx-library-nav button:hover{transform:translateY(-3px)}
@@ -799,9 +821,22 @@
       </div>
       <section class="lx-library" id="lxDownloads"><h3>DESCARGAS</h3><div id="lxDownloadsList"></div></section>
       <section class="lx-library" id="lxHistory"><h3>HISTORIAL</h3><div id="lxHistoryList"></div></section>      
-      <section class="lx-library" id="lxSettings"><h3>AJUSTES</h3>
+      <section class="lx-library" id="lxSettings"><h3>PERSONALIZAR INTERFAZ</h3>
+        <div class="lx-custom-grid">
+          <label class="lx-control">1. Color principal<input type="color" id="lxAccent" value="#00faff"></label>
+          <label class="lx-control">2. Paleta de colores<select id="lxPalette"><option value="neon">Neón original</option><option value="cyan">Cian</option><option value="magenta">Magenta</option><option value="green">Verde</option><option value="amber">Ámbar</option><option value="mono">Blanco y negro</option></select></label>
+          <label class="lx-control">3. Fondo de interfaz<select id="lxBackground"><option value="original">Original animado</option><option value="dark">Negro profundo</option><option value="midnight">Azul nocturno</option><option value="solid">Color uniforme</option></select></label>
+          <label class="lx-control">4. Animación del fondo<input type="checkbox" id="lxBgMotion" checked></label>
+          <label class="lx-control">5. Intensidad del brillo<input type="range" id="lxGlow" min="0" max="100" value="65"></label>
+          <label class="lx-control">6. Transparencia del panel<input type="range" id="lxGlass" min="20" max="100" value="78"></label>
+          <label class="lx-control">7. Redondeado de esquinas<input type="range" id="lxRadius" min="0" max="30" value="20"></label>
+          <label class="lx-control">8. Tamaño del texto<select id="lxTextSize"><option value="small">Pequeño</option><option value="normal" selected>Normal</option><option value="large">Grande</option></select></label>
+          <label class="lx-control">9. Modo compacto<input type="checkbox" id="lxCompact"></label>
+          <label class="lx-control">10. Estilo de botones<select id="lxButtonStyle"><option value="gradient">Degradado original</option><option value="solid">Color sólido</option><option value="outline">Contorno neón</option></select></label>
+        </div>
+        <div class="lx-settings-actions"><button type="button" id="lxResetSettings">Restablecer personalización</button></div>
         <label class="lx-setting-row"><input type="checkbox" id="lxMotion" checked> Animaciones de la barra</label>
-        <p class="lx-setting-note">Controla el movimiento y el brillo animado de la navegación.</p>
+        <p class="lx-setting-note">Los cambios se aplican al instante y se guardan en este navegador.</p>
         <button type="button" class="lx-policy-link" id="lxOpenPrivacy">Política de privacidad</button>
       </section>
       <section class="lx-library" id="lxPrivacy"><h3>POLÍTICA DE PRIVACIDAD</h3>
@@ -859,6 +894,42 @@
     motionToggle.checked=localStorage.getItem('lx_motion')!=='off';
     motionToggle.onchange=()=>{localStorage.setItem('lx_motion',motionToggle.checked?'on':'off');document.querySelector('.lx-library-nav').classList.toggle('no-motion',!motionToggle.checked);};
     document.querySelector('.lx-library-nav').classList.toggle('no-motion',!motionToggle.checked);
+
+
+    // Personalización de interfaz LUCK XIT: diez controles persistentes.
+    const lxDefaults={accent:'#00faff',palette:'neon',background:'original',bgMotion:true,glow:65,glass:78,radius:20,textSize:'normal',compact:false,buttonStyle:'gradient'};
+    const lxIds={accent:'lxAccent',palette:'lxPalette',background:'lxBackground',bgMotion:'lxBgMotion',glow:'lxGlow',glass:'lxGlass',radius:'lxRadius',textSize:'lxTextSize',compact:'lxCompact',buttonStyle:'lxButtonStyle'};
+    let lxPrefs={...lxDefaults};
+    try{lxPrefs={...lxDefaults,...JSON.parse(localStorage.getItem('lx_interface_v1')||'{}')};}catch(e){}
+    const lxPaletteColors={neon:'#00faff',cyan:'#00d9ff',magenta:'#ff00f0',green:'#00ff88',amber:'#ffaa00',mono:'#eeeeee'};
+    function lxApplySettings(){
+      const root=document.documentElement,body=document.body;
+      root.style.setProperty('--lx-accent',lxPrefs.accent);
+      const box=document.querySelector('.box');
+      if(box){box.style.borderRadius=lxPrefs.radius+'px';box.style.background='rgba(10,10,20,'+(lxPrefs.glass/100)+')';box.style.boxShadow=lxPrefs.glow==0?'none':'0 0 '+Math.round(lxPrefs.glow*.9)+'px '+lxPrefs.accent+'55';}
+      body.classList.toggle('lx-compact',!!lxPrefs.compact);
+      body.classList.toggle('lx-text-small',lxPrefs.textSize==='small');
+      body.classList.toggle('lx-text-large',lxPrefs.textSize==='large');
+      body.classList.toggle('lx-bg-dark',lxPrefs.background==='dark');
+      body.classList.toggle('lx-bg-midnight',lxPrefs.background==='midnight');
+      body.classList.toggle('lx-bg-solid',lxPrefs.background==='solid');
+      body.classList.toggle('lx-no-bg-motion',!lxPrefs.bgMotion);
+      body.classList.toggle('lx-button-solid',lxPrefs.buttonStyle==='solid');
+      body.classList.toggle('lx-button-outline',lxPrefs.buttonStyle==='outline');
+      document.querySelectorAll('.box,.preview-container,.lx-library').forEach(el=>el.style.borderRadius=lxPrefs.radius+'px');
+      const glassAlpha=lxPrefs.glass/100;
+      document.querySelectorAll('.preview-container,.lx-library').forEach(el=>el.style.background='rgba(5,20,38,'+glassAlpha+')');
+      document.querySelectorAll('.btn-video,.btn-audio,.btn-gallery').forEach(el=>el.style.filter=lxPrefs.glow?'drop-shadow(0 0 '+Math.round(lxPrefs.glow/12)+'px '+lxPrefs.accent+')':'none');
+      Object.entries(lxIds).forEach(([key,id])=>{const el=document.getElementById(id);if(el)el.type==='checkbox'?el.checked=!!lxPrefs[key]:el.value=lxPrefs[key];});
+      localStorage.setItem('lx_interface_v1',JSON.stringify(lxPrefs));
+    }
+    Object.entries(lxIds).forEach(([key,id])=>{
+      const el=document.getElementById(id);if(!el)return;
+      el.addEventListener('input',()=>{lxPrefs[key]=el.type==='checkbox'?el.checked:(['glow','glass','radius'].includes(key)?Number(el.value):el.value);if(key==='palette'&&lxPaletteColors[lxPrefs.palette])lxPrefs.accent=lxPaletteColors[lxPrefs.palette];lxApplySettings();});
+      el.addEventListener('change',()=>{lxPrefs[key]=el.type==='checkbox'?el.checked:(['glow','glass','radius'].includes(key)?Number(el.value):el.value);if(key==='palette'&&lxPaletteColors[lxPrefs.palette])lxPrefs.accent=lxPaletteColors[lxPrefs.palette];lxApplySettings();});
+    });
+    document.getElementById('lxResetSettings').onclick=()=>{lxPrefs={...lxDefaults};lxApplySettings();};
+    lxApplySettings();
 
     let currentSlide = 0;
     let carouselImages = [];
