@@ -676,6 +676,12 @@
 
 
 
+    .lx-settings-category{margin:10px 0 16px}
+    .lx-custom-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border:1px solid rgba(0,250,255,.38);border-radius:12px;background:rgba(0,190,220,.09);color:#f4f7ff;font:600 .86rem 'Poppins',sans-serif;text-align:left;cursor:pointer}
+    .lx-custom-toggle:hover{border-color:var(--lx-accent,#00faff);box-shadow:0 0 16px color-mix(in srgb,var(--lx-accent,#00faff) 22%,transparent)}
+    .lx-custom-arrow{font-size:1.2rem;transition:transform .25s ease;color:var(--lx-accent,#00faff)}
+    .lx-custom-toggle[aria-expanded="true"] .lx-custom-arrow{transform:rotate(180deg)}
+    .lx-custom-panel{padding-top:4px}
     .lx-custom-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:14px 0}
     .lx-control{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(255,255,255,.045);color:#dcecff;font-size:.78rem}
     .lx-control input[type=color]{width:100%;height:38px;border:0;background:transparent}
@@ -697,6 +703,10 @@
     body.lx-button-outline button.btn-video,body.lx-button-outline button.btn-audio,body.lx-button-outline button.btn-gallery{background:transparent!important;border:1px solid var(--lx-accent)!important;color:var(--lx-accent)!important;box-shadow:0 0 12px color-mix(in srgb,var(--lx-accent) 30%,transparent)!important}
     @media(max-width:600px){.lx-custom-grid{grid-template-columns:1fr}}
 
+    .lx-library-nav{border-color:color-mix(in srgb,var(--lx-accent,#00faff) 48%,transparent);background:rgba(12,16,34,var(--lx-nav-glass,.72));border-radius:var(--lx-nav-radius,18px);box-shadow:0 10px 36px rgba(0,0,0,var(--lx-nav-glow,.48)),0 0 18px color-mix(in srgb,var(--lx-accent,#00faff) 18%,transparent),inset 0 1px rgba(255,255,255,.13)}
+    .lx-library-nav button{color:var(--lx-accent,#e9edff)}
+    .lx-library-nav button.active{background:linear-gradient(135deg,color-mix(in srgb,var(--lx-accent,#6a00ff) 48%,transparent),rgba(0,210,255,.16));border-color:color-mix(in srgb,var(--lx-accent,#00faff) 65%,transparent);box-shadow:0 0 var(--lx-nav-glow-size,15px) color-mix(in srgb,var(--lx-accent,#00faff) 30%,transparent)}
+    .lx-library-nav::after{opacity:var(--lx-nav-sweep,.8)}
     .lx-library-nav{animation:lxFloatIn .65s cubic-bezier(.2,.8,.2,1) both}
     .lx-library-nav button{transition:transform .22s ease,background .3s ease,box-shadow .3s ease,border-color .3s ease}
     .lx-library-nav button:hover{transform:translateY(-3px)}
@@ -821,7 +831,12 @@
       </div>
       <section class="lx-library" id="lxDownloads"><h3>DESCARGAS</h3><div id="lxDownloadsList"></div></section>
       <section class="lx-library" id="lxHistory"><h3>HISTORIAL</h3><div id="lxHistoryList"></div></section>      
-      <section class="lx-library" id="lxSettings"><h3>PERSONALIZAR INTERFAZ</h3>
+      <section class="lx-library" id="lxSettings"><h3>AJUSTES</h3>
+        <div class="lx-settings-category">
+          <button type="button" class="lx-custom-toggle" id="lxToggleCustom" aria-expanded="false" aria-controls="lxCustomPanel">
+            <span>Personalizar interfaz</span><span class="lx-custom-arrow" id="lxCustomArrow" aria-hidden="true">↓</span>
+          </button>
+          <div class="lx-custom-panel" id="lxCustomPanel" hidden>
         <div class="lx-custom-grid">
           <label class="lx-control">1. Color principal<input type="color" id="lxAccent" value="#00faff"></label>
           <label class="lx-control">2. Paleta de colores<select id="lxPalette"><option value="neon">Neón original</option><option value="cyan">Cian</option><option value="magenta">Magenta</option><option value="green">Verde</option><option value="amber">Ámbar</option><option value="mono">Blanco y negro</option></select></label>
@@ -835,6 +850,8 @@
           <label class="lx-control">10. Estilo de botones<select id="lxButtonStyle"><option value="gradient">Degradado original</option><option value="solid">Color sólido</option><option value="outline">Contorno neón</option></select></label>
         </div>
         <div class="lx-settings-actions"><button type="button" id="lxResetSettings">Restablecer personalización</button></div>
+          </div>
+        </div>
         <label class="lx-setting-row"><input type="checkbox" id="lxMotion" checked> Animaciones de la barra</label>
         <p class="lx-setting-note">Los cambios se aplican al instante y se guardan en este navegador.</p>
         <button type="button" class="lx-policy-link" id="lxOpenPrivacy">Política de privacidad</button>
@@ -905,6 +922,13 @@
     function lxApplySettings(){
       const root=document.documentElement,body=document.body;
       root.style.setProperty('--lx-accent',lxPrefs.accent);
+      root.style.setProperty('--lx-nav-glass',String(Math.max(.25,lxPrefs.glass/100)));
+      root.style.setProperty('--lx-nav-radius',lxPrefs.radius+'px');
+      root.style.setProperty('--lx-nav-glow',String(lxPrefs.glow/100));
+      root.style.setProperty('--lx-nav-glow-size',Math.round(lxPrefs.glow*.23)+'px');
+      root.style.setProperty('--lx-nav-sweep',lxPrefs.bgMotion?'0.8':'0');
+      const nav=document.querySelector('.lx-library-nav');
+      if(nav){nav.style.borderColor=lxPrefs.accent+'88';nav.style.boxShadow=lxPrefs.glow?'0 10px 36px rgba(0,0,0,.48),0 0 '+Math.round(lxPrefs.glow*.25)+'px '+lxPrefs.accent+'55':'none';}
       const box=document.querySelector('.box');
       if(box){box.style.borderRadius=lxPrefs.radius+'px';box.style.background='rgba(10,10,20,'+(lxPrefs.glass/100)+')';box.style.boxShadow=lxPrefs.glow==0?'none':'0 0 '+Math.round(lxPrefs.glow*.9)+'px '+lxPrefs.accent+'55';}
       body.classList.toggle('lx-compact',!!lxPrefs.compact);
@@ -928,6 +952,13 @@
       el.addEventListener('input',()=>{lxPrefs[key]=el.type==='checkbox'?el.checked:(['glow','glass','radius'].includes(key)?Number(el.value):el.value);if(key==='palette'&&lxPaletteColors[lxPrefs.palette])lxPrefs.accent=lxPaletteColors[lxPrefs.palette];lxApplySettings();});
       el.addEventListener('change',()=>{lxPrefs[key]=el.type==='checkbox'?el.checked:(['glow','glass','radius'].includes(key)?Number(el.value):el.value);if(key==='palette'&&lxPaletteColors[lxPrefs.palette])lxPrefs.accent=lxPaletteColors[lxPrefs.palette];lxApplySettings();});
     });
+    const lxToggleCustom=document.getElementById('lxToggleCustom');
+    const lxCustomPanel=document.getElementById('lxCustomPanel');
+    lxToggleCustom.onclick=()=>{
+      const opening=lxCustomPanel.hidden;
+      lxCustomPanel.hidden=!opening;
+      lxToggleCustom.setAttribute('aria-expanded',String(opening));
+    };
     document.getElementById('lxResetSettings').onclick=()=>{lxPrefs={...lxDefaults};lxApplySettings();};
     lxApplySettings();
 
