@@ -415,6 +415,158 @@ def music_search():
     except requests.RequestException as exc:
         return jsonify({'error': 'No se pudo consultar YouTube: ' + str(exc)}), 502
 
+
+# Caché breve para reducir consumo de cuota de YouTube Data API.
+_YT_CACHE = {}
+_YT_CACHE_TTL = 120
+
+def youtube_api_get(endpoint, params):
+    api_key = os.environ.get('YOUTUBE_API_KEY', '').strip()
+    if not api_key:
+        raise RuntimeError('Falta configurar YOUTUBE_API_KEY en Render.')
+    clean_params = dict(params)
+    clean_params['key'] = api_key
+    cache_key = (endpoint, tuple(sorted((k, str(v)) for k, v in clean_params.items() if k != 'key')))
+    now = time.time()
+    cached = _YT_CACHE.get(cache_key)
+    if cached and now - cached['time'] < _YT_CACHE_TTL:
+        return cached['data']
+    response = requests.get('https://www.googleapis.com/youtube/v3/' + endpoint,
+                            params=clean_params, timeout=15)
+    if response.status_code == 403:
+        raise PermissionError('YouTube rechazó la consulta. Revisa la API key, la cuota y YouTube Data API v3.')
+    response.raise_for_status()
+    data = response.json()
+    _YT_CACHE[cache_key] = {'time': now, 'data': data}
+    if len(_YT_CACHE) > 500:
+        for key, value in list(_YT_CACHE.items()):
+            if now - value['time'] >= _YT_CACHE_TTL:
+                _YT_CACHE.pop(key, None)
+    return data
+
+def youtube_api_error(exc):
+    if isinstance(exc, RuntimeError):
+        return jsonify({'error': str(exc)}), 503
+    if isinstance(exc, PermissionError):
+        return jsonify({'error': str(exc)}), 502
+    if isinstance(exc, requests.RequestException):
+        return jsonify({'error': 'No se pudo consultar YouTube en este momento.'}), 502
+    return jsonify({'error': 'Error interno consultando YouTube.'}), 500
+
+@app.route('/api/youtube/video/<video_id>', methods=['GET'])
+def youtube_video_details(video_id):
+    """Metadatos de un vídeo para LUCK MUSIC; no extrae ni descarga medios."""
+    import re
+    if not re.fullmatch(r'[A-Za-z0-9_-]{11}', video_id):
+        return jsonify({'error': 'ID de YouTube no válido.'}), 400
+    try:
+        data = youtube_api_get('videos', {
+            'part': 'snippet,contentDetails,status,statistics',
+            'id': video_id
+        })
+        items = data.get('items', [])
+        if not items:
+            return jsonify({'error': 'Vídeo no encontrado o no disponible.'}), 404
+        item = items[0]
+        if not item.get('status', {}).get('embeddable', False):
+            return jsonify({'error': 'Este vídeo no permite reproducción integrada.'}), 403
+        snippet = item.get('snippet', {})
+        return jsonify({
+            'id': video_id,
+            'title': snippet.get('title', ''),
+            'artist': snippet.get('channelTitle', ''),
+            'channelId': snippet.get('channelId', ''),
+            'description': snippet.get('description', '')[:1200],
+            'thumbnail': (snippet.get('thumbnails', {}).get('high') or
+                          snippet.get('thumbnails', {}).get('medium') or
+                          snippet.get('thumbnails', {}).get('default') or {}).get('url', ''),
+            'publishedAt': snippet.get('publishedAt', ''),
+            'duration': item.get('contentDetails', {}).get('duration', ''),
+            'views': item.get('statistics', {}).get('viewCount'),
+            'url': 'https://www.youtube.com/watch?v=' + video_id,
+            'playable': True,
+            'source': 'YouTube Data API v3'
+        })
+    except Exception as exc:
+        return youtube_api_error(exc)
+
+@app.route('/api/youtube/channel/<channel_id>', methods=['GET'])
+def youtube_channel_details(channel_id):
+    """Información pública de un canal para el catálogo musical."""
+    import re
+    if not re.fullmatch(r'UC[A-Za-z0-9_-]{22}', channel_id):
+        return jsonify({'error': 'ID de canal no válido.'}), 400
+    try:
+        data = youtube_api_get('channels', {
+            'part': 'snippet,statistics,contentDetails',
+            'id': channel_id
+        })
+        items = data.get('items', [])
+        if not items:
+            return jsonify({'error': 'Canal no encontrado.'}), 404
+        item = items[0]
+        snippet = item.get('snippet', {})
+        stats = item.get('statistics', {})
+        return jsonify({
+            'id': channel_id,
+            'title': snippet.get('title', ''),
+            'description': snippet.get('description', '')[:1000],
+            'thumbnail': (snippet.get('thumbnails', {}).get('high') or
+                          snippet.get('thumbnails', {}).get('default') or {}).get('url', ''),
+            'publishedAt': snippet.get('publishedAt', ''),
+            'subscribers': stats.get('subscriberCount'),
+            'videos': stats.get('videoCount'),
+            'source': 'YouTube Data API v3'
+        })
+    except Exception as exc:
+        return youtube_api_error(exc)
+
+@app.route('/api/youtube/related/<video_id>', methods=['GET'])
+def youtube_related_videos(video_id):
+    """Recomendaciones relacionadas mediante YouTube Data API."""
+    import re
+    if not re.fullmatch(r'[A-Za-z0-9_-]{11}', video_id):
+        return jsonify({'error': 'ID de YouTube no válido.'}), 400
+    try:
+        data = youtube_api_get('search', {
+            'part': 'snippet',
+            'type': 'video',
+            'relatedToVideoId': video_id,
+            'maxResults': 12,
+            'regionCode': 'EC'
+        })
+        items = data.get('items', [])
+        ids = [x.get('id', {}).get('videoId') for x in items]
+        ids = [x for x in ids if x]
+        allowed = set()
+        if ids:
+            detail_data = youtube_api_get('videos', {
+                'part': 'contentDetails,status',
+                'id': ','.join(ids)
+            })
+            allowed = {x.get('id') for x in detail_data.get('items', [])
+                       if x.get('status', {}).get('embeddable', False)}
+        results = []
+        for item in items:
+            vid = item.get('id', {}).get('videoId')
+            if not vid or vid not in allowed:
+                continue
+            sn = item.get('snippet', {})
+            thumbs = sn.get('thumbnails', {})
+            results.append({
+                'id': vid,
+                'videoId': vid,
+                'title': sn.get('title', ''),
+                'artist': sn.get('channelTitle', ''),
+                'channelId': sn.get('channelId', ''),
+                'thumbnail': (thumbs.get('high') or thumbs.get('medium') or
+                              thumbs.get('default') or {}).get('url', ''),
+                'url': 'https://www.youtube.com/watch?v=' + vid
+            })
+        return jsonify({'results': results, 'source': 'YouTube Data API v3'})
+    except Exception as exc:
+        return youtube_api_error(exc)
+
 @app.route('/api/music/lyrics', methods=['GET'])
 def music_lyrics():
     """Consulta letras y timestamps disponibles en LRCLIB."""
