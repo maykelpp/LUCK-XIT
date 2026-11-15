@@ -1265,7 +1265,7 @@
     function lmPlayIndex(i){const t=lmSearchResults[i];if(t)lmPlay(t);}
     function lmPlay(t){if(!t||!t.url){alert('Esta pista no tiene una vista previa disponible.');return;}lmCurrent=t;lmAudio.src=t.url;lmAudio.play().catch(()=>{});document.getElementById('lmNowTitle').textContent=t.title||'Audio';document.getElementById('lmNowArtist').textContent=t.artist||'Desconocido';const cover=document.getElementById('lmCover');cover.hidden=!t.artwork;cover.src=t.artwork||'';lmLoadLyrics();}
     function lmAddFavorite(i){const t=lmSearchResults[i];if(!t)return;if(!lmFavorites.some(x=>x.id===t.id))lmFavorites.unshift(t);lmSave();lmRenderFavorites();}
-    function lmRemoveFavorite(id){lmFavorites=lmFavorites.filter(x=>x.id!==id);lmSave();lmRenderFavorites();}
+    function lmRemoveFavorite(id){lmFavorites=lmFavorites.filter(x=>String(x.id)!==String(id));lmSave();lmRenderFavorites();} function lmRemoveFavoriteIndex(i){const t=lmFavorites[i];if(t)lmRemoveFavorite(t.id);}
     function lmRenderFavorites(){const root=document.getElementById('lmFavorites');root.innerHTML=lmFavorites.length?lmFavorites.map((t,i)=>'<article class="lm-track"><img src="'+lmEsc(t.artwork||'')+'"><div class="lm-track-info"><strong>'+lmEsc(t.title)+'</strong><small>'+lmEsc(t.artist)+'</small></div><div class="lm-track-actions"><button onclick="lmPlayFavorite('+i+')">▶</button><button onclick="lmRemoveFavorite('+JSON.stringify(t.id)+')">✕</button></div></article>').join(''):'<div class="lm-empty">Todavía no guardas favoritos.</div>';}
     function lmPlayFavorite(i){const t=lmFavorites[i];if(t)lmPlay(t);}
     function lmAddQueue(i){const t=lmSearchResults[i];if(t)lmQueue.push(t);lmRenderQueue();}
