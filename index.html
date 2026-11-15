@@ -674,6 +674,20 @@
     body{padding-bottom:88px}
     @media(max-width:480px){.lx-library-nav{bottom:12px!important;gap:3px;padding:6px}.lx-library-nav button{min-width:0;padding:10px 11px;font-size:.68rem}}
 
+
+    .lx-library-nav{animation:lxFloatIn .65s cubic-bezier(.2,.8,.2,1) both}
+    .lx-library-nav button{transition:transform .22s ease,background .3s ease,box-shadow .3s ease,border-color .3s ease}
+    .lx-library-nav button:hover{transform:translateY(-3px)}
+    .lx-library-nav::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(110deg,transparent 25%,rgba(255,255,255,.13) 48%,transparent 70%);background-size:220% 100%;animation:lxGlassSweep 5s ease-in-out infinite}
+    @keyframes lxFloatIn{from{opacity:0;translate:0 18px;scale:.96}to{opacity:1;translate:0 0;scale:1}}
+    @keyframes lxGlassSweep{0%,65%{background-position:130% 0}100%{background-position:-130% 0}}
+    .lx-setting-row{display:flex;align-items:center;gap:10px;color:#e9edff;font-size:.85rem;margin:12px 0}
+    .lx-setting-note{color:#9da8c8;font-size:.75rem}
+    .lx-policy-link{border:1px solid rgba(0,250,255,.4);border-radius:8px;padding:9px 13px;color:#eafaff;background:rgba(0,180,210,.12);margin-top:10px}
+    .lx-library p{color:#c1c9e0;font-size:.82rem;line-height:1.65}
+    .lx-library-nav.no-motion,.lx-library-nav.no-motion::after,.lx-library-nav.no-motion button{animation:none!important;transition:none!important}
+    @media(prefers-reduced-motion:reduce){.lx-library-nav,.lx-library-nav::after,.lx-library-nav button{animation:none!important;transition:none!important}}
+
 </style>
 </head>
 <body>
@@ -781,14 +795,28 @@
         <button type="button" id="lxShowMain" class="active">Descargador</button>
         <button type="button" id="lxShowDownloads">Descargas</button>
         <button type="button" id="lxShowHistory">Historial</button>
+        <button type="button" id="lxShowSettings">Ajustes</button>
       </div>
       <section class="lx-library" id="lxDownloads"><h3>DESCARGAS</h3><div id="lxDownloadsList"></div></section>
-      <section class="lx-library" id="lxHistory"><h3>HISTORIAL</h3><div id="lxHistoryList"></div></section>
+      <section class="lx-library" id="lxHistory"><h3>HISTORIAL</h3><div id="lxHistoryList"></div></section>      
+      <section class="lx-library" id="lxSettings"><h3>AJUSTES</h3>
+        <label class="lx-setting-row"><input type="checkbox" id="lxMotion" checked> Animaciones de la barra</label>
+        <p class="lx-setting-note">Controla el movimiento y el brillo animado de la navegación.</p>
+        <button type="button" class="lx-policy-link" id="lxOpenPrivacy">Política de privacidad</button>
+      </section>
+      <section class="lx-library" id="lxPrivacy"><h3>POLÍTICA DE PRIVACIDAD</h3>
+        <p>LUCK XIT procesa los enlaces que introduces para generar vistas previas y solicitar descargas.</p>
+        <p>El historial y la lista de descargas se guardan en el almacenamiento local de este navegador. No se sincronizan automáticamente entre dispositivos.</p>
+        <p>El servidor puede recibir el enlace, la dirección IP y datos técnicos necesarios para atender la solicitud y mantener la seguridad del servicio.</p>
+        <p>No introduzcas enlaces privados ni información personal. Utiliza el servicio únicamente con contenido que tengas derecho o autorización para descargar.</p>
+        <p>Los servicios de terceros que alojan el contenido pueden aplicar sus propias políticas de privacidad.</p>
+        <button type="button" class="lx-policy-link" id="lxBackSettings">Volver a ajustes</button>
+      </section>
 
     </div>
   </div>
 
-  <footer>LUCK XIT © 2025 – Powered by yt-dlp + gallery-dl</footer>
+  
 
   <script>
     let previewData = null;
@@ -810,11 +838,12 @@
       document.querySelector('.input-wrapper').style.display=main?'':'none';
       document.querySelector('.preview-btn').style.display=main?'':'none';
       document.querySelector('.buttons').style.display=main?'':'none';
-      document.getElementById('lxDownloads').classList.toggle('active',view==='downloads');
-      document.getElementById('lxHistory').classList.toggle('active',view==='history');
-      document.getElementById('lxShowMain').classList.toggle('active',view==='main');
-      document.getElementById('lxShowDownloads').classList.toggle('active',view==='downloads');
-      document.getElementById('lxShowHistory').classList.toggle('active',view==='history');
+      ['lxDownloads','lxHistory','lxSettings','lxPrivacy'].forEach(id=>document.getElementById(id).classList.remove('active'));
+      if(view==='downloads')document.getElementById('lxDownloads').classList.add('active');
+      if(view==='history')document.getElementById('lxHistory').classList.add('active');
+      if(view==='settings')document.getElementById('lxSettings').classList.add('active');
+      if(view==='privacy')document.getElementById('lxPrivacy').classList.add('active');
+      ['lxShowMain','lxShowDownloads','lxShowHistory','lxShowSettings'].forEach(id=>document.getElementById(id).classList.toggle('active',(id==='lxShowMain'&&view==='main')||(id==='lxShowDownloads'&&view==='downloads')||(id==='lxShowHistory'&&view==='history')||(id==='lxShowSettings'&&view==='settings')));
       if(view==='downloads')lxRender('downloads');
       if(view==='history')lxRender('history');
     }
@@ -823,6 +852,13 @@
     document.getElementById('lxShowMain').onclick=()=>lxView('main');
     document.getElementById('lxShowDownloads').onclick=()=>lxView('downloads');
     document.getElementById('lxShowHistory').onclick=()=>lxView('history');
+    document.getElementById('lxShowSettings').onclick=()=>lxView('settings');
+    document.getElementById('lxOpenPrivacy').onclick=()=>lxView('privacy');
+    document.getElementById('lxBackSettings').onclick=()=>lxView('settings');
+    const motionToggle=document.getElementById('lxMotion');
+    motionToggle.checked=localStorage.getItem('lx_motion')!=='off';
+    motionToggle.onchange=()=>{localStorage.setItem('lx_motion',motionToggle.checked?'on':'off');document.querySelector('.lx-library-nav').classList.toggle('no-motion',!motionToggle.checked);};
+    document.querySelector('.lx-library-nav').classList.toggle('no-motion',!motionToggle.checked);
 
     let currentSlide = 0;
     let carouselImages = [];
