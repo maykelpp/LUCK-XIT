@@ -390,7 +390,7 @@ def music_search():
                 if not item.get('status', {}).get('embeddable', True):
                     continue
                 raw = item.get('contentDetails', {}).get('duration', '')
-                match = re.fullmatch(r'PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?', raw)
+                match = re.fullmatch(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', raw)
                 if match:
                     h, m, sec = (int(x or 0) for x in match.groups())
                     total = h * 3600 + m * 60 + sec
