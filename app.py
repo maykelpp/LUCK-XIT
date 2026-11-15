@@ -359,6 +359,62 @@ def download():
     except Exception as e:
         return jsonify({'error': f'Error en la descarga: {str(e)}'}), 500
 
+@app.route('/api/music/search', methods=['GET'])
+def music_search():
+    """Busca metadatos y previews oficiales del catálogo de iTunes."""
+    query = request.args.get('q', '').strip()[:160]
+    if not query:
+        return jsonify({'results': []})
+    try:
+        response = requests.get('https://itunes.apple.com/search', params={
+            'term': query, 'entity': 'song', 'limit': 24, 'country': 'EC'
+        }, timeout=15, headers={'User-Agent': 'LUCK-XIT/1.0'})
+        response.raise_for_status()
+        payload = response.json()
+        results = []
+        for item in payload.get('results', []):
+            preview = item.get('previewUrl')
+            if not preview:
+                continue
+            results.append({
+                'id': str(item.get('trackId', preview)),
+                'title': item.get('trackName', 'Sin título'),
+                'artist': item.get('artistName', 'Artista desconocido'),
+                'album': item.get('collectionName', ''),
+                'artwork': item.get('artworkUrl100', '').replace('100x100bb', '300x300bb'),
+                'url': preview,
+                'duration': round((item.get('trackTimeMillis') or 0) / 1000),
+                'preview': True
+            })
+        return jsonify({'results': results, 'source': 'iTunes Search API'})
+    except requests.RequestException as exc:
+        return jsonify({'error': 'No se pudo consultar el catálogo musical: ' + str(exc)}), 502
+    except (ValueError, TypeError) as exc:
+        return jsonify({'error': 'Respuesta de catálogo no válida: ' + str(exc)}), 502
+
+@app.route('/api/music/lyrics', methods=['GET'])
+def music_lyrics():
+    """Consulta letras y timestamps disponibles en LRCLIB."""
+    artist = request.args.get('artist', '').strip()[:160]
+    track = request.args.get('track', '').strip()[:160]
+    album = request.args.get('album', '').strip()[:160]
+    if not artist or not track:
+        return jsonify({'error': 'Se necesita artista y título'}), 400
+    try:
+        params = {'artist_name': artist, 'track_name': track}
+        if album:
+            params['album_name'] = album
+        response = requests.get('https://lrclib.net/api/get', params=params, timeout=12,
+                                headers={'User-Agent': 'LUCK-XIT/1.0 (music module)'})
+        if response.status_code == 404:
+            return jsonify({'error': 'No hay letras disponibles para esta canción'}), 404
+        response.raise_for_status()
+        data = response.json()
+        return jsonify({'plainLyrics': data.get('plainLyrics'), 'syncedLyrics': data.get('syncedLyrics'),
+                        'source': 'LRCLIB'})
+    except requests.RequestException as exc:
+        return jsonify({'error': 'No se pudo consultar el servicio de letras: ' + str(exc)}), 502
+
 @app.route('/health')
 def health():
     """Endpoint para verificar que el servidor est谩 funcionando"""
