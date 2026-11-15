@@ -667,7 +667,14 @@
     .lx-entry{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.16)}
     @media(max-width:600px){.lx-library-nav{gap:4px;padding:5px}.lx-library-nav button{padding:10px 7px;font-size:.67rem}}
 
-  </style>
+  
+    .lx-library-nav{position:fixed!important;left:50%!important;bottom:18px!important;top:auto!important;transform:translateX(-50%)!important;z-index:9999!important;display:flex!important;align-items:center;justify-content:center;gap:7px;width:max-content;max-width:calc(100vw - 24px);margin:0!important;padding:8px;border:1px solid rgba(255,255,255,.24);border-radius:18px;background:rgba(12,16,34,.72);backdrop-filter:blur(22px) saturate(170%);-webkit-backdrop-filter:blur(22px) saturate(170%);box-shadow:0 10px 36px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.13)}
+    .lx-library-nav button{flex:1;white-space:nowrap;min-width:88px;padding:11px 15px;border:1px solid transparent;border-radius:11px;background:transparent;color:#e9edff;font:600 .76rem 'Poppins',sans-serif;letter-spacing:.25px}
+    .lx-library-nav button.active{background:linear-gradient(135deg,rgba(106,0,255,.82),rgba(0,210,255,.30));border-color:rgba(0,250,255,.5);box-shadow:0 0 15px rgba(0,250,255,.18)}
+    body{padding-bottom:88px}
+    @media(max-width:480px){.lx-library-nav{bottom:12px!important;gap:3px;padding:6px}.lx-library-nav button{min-width:0;padding:10px 11px;font-size:.68rem}}
+
+</style>
 </head>
 <body>
   <div class="bg">
@@ -723,11 +730,7 @@
       </div>
 
       <p class="subtitle">Descarga y previsualiza contenido de TikTok/Instagram</p>
-      <div class="lx-library-nav">
-        <button type="button" id="lxShowMain" class="active">Descargador</button>
-        <button type="button" id="lxShowDownloads">Descargas</button>
-        <button type="button" id="lxShowHistory">Historial</button>
-      </div>
+      
 
       <div class="input-wrapper">
         <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -775,9 +778,9 @@
       <p id="status"></p>
 
       <div class="lx-library-nav">
-        <button type="button" id="lxShowMain" class="active"> Descargador</button>
-        <button type="button" id="lxShowDownloads">⇩ Descargas</button>
-        <button type="button" id="lxShowHistory">◷ Historial</button>
+        <button type="button" id="lxShowMain" class="active">Descargador</button>
+        <button type="button" id="lxShowDownloads">Descargas</button>
+        <button type="button" id="lxShowHistory">Historial</button>
       </div>
       <section class="lx-library" id="lxDownloads"><h3>DESCARGAS</h3><div id="lxDownloadsList"></div></section>
       <section class="lx-library" id="lxHistory"><h3>HISTORIAL</h3><div id="lxHistoryList"></div></section>
