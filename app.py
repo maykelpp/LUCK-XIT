@@ -7,6 +7,7 @@ from pathlib import Path
 import time
 import shutil
 import requests
+from flask import redirect
 
 app = Flask(__name__)
 
@@ -361,211 +362,75 @@ def download():
 
 @app.route('/api/music/search', methods=['GET'])
 def music_search():
-    """Busca videos musicales mediante YouTube Data API v3."""
-    import re
+    """Busca catálogo Jamendo y respeta la autorización de descarga por canción."""
     query = request.args.get('q', '').strip()[:160]
-    api_key = os.environ.get('YOUTUBE_API_KEY', '').strip()
+    client_id = os.environ.get('JAMENDO_CLIENT_ID', '').strip()
     if not query:
         return jsonify({'results': []})
-    if not api_key:
-        return jsonify({'error': 'Falta configurar YOUTUBE_API_KEY en las variables de Render.'}), 503
+    if not client_id:
+        return jsonify({'error': 'Falta configurar JAMENDO_CLIENT_ID en Render.'}), 503
     try:
-        search_response = requests.get('https://www.googleapis.com/youtube/v3/search', params={
-            'part': 'snippet', 'q': query, 'type': 'video', 'videoCategoryId': '10',
-            'maxResults': 20, 'regionCode': 'EC', 'key': api_key
+        response = requests.get('https://api.jamendo.com/v3.0/tracks/', params={
+            'client_id': client_id, 'format': 'json', 'search': query,
+            'limit': 25, 'audioformat': 'mp32', 'include': 'licenses'
         }, timeout=15)
-        if search_response.status_code == 403:
-            return jsonify({'error': 'YouTube rechazó la consulta. Revisa la API key, la cuota y YouTube Data API v3.'}), 502
-        search_response.raise_for_status()
-        items = search_response.json().get('items', [])
-        ids = [item.get('id', {}).get('videoId') for item in items]
-        ids = [video_id for video_id in ids if video_id]
-        durations = {}
-        if ids:
-            details = requests.get('https://www.googleapis.com/youtube/v3/videos', params={
-                'part': 'contentDetails,status', 'id': ','.join(ids), 'key': api_key
-            }, timeout=15)
-            details.raise_for_status()
-            for item in details.json().get('items', []):
-                if not item.get('status', {}).get('embeddable', True):
-                    continue
-                raw = item.get('contentDetails', {}).get('duration', '')
-                match = re.fullmatch(r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?', raw)
-                if match:
-                    h, m, sec = (int(x or 0) for x in match.groups())
-                    total = h * 3600 + m * 60 + sec
-                    durations[item['id']] = f'{total // 60}:{total % 60:02d}' if total < 3600 else f'{total // 3600}:{(total % 3600) // 60:02d}:{total % 60:02d}'
+        response.raise_for_status()
+        payload = response.json()
+        if payload.get('headers', {}).get('status') != 'success':
+            return jsonify({'error': 'Jamendo no pudo completar la búsqueda.'}), 502
         results = []
-        for item in items:
-            video_id = item.get('id', {}).get('videoId')
-            snippet = item.get('snippet', {})
-            if not video_id or video_id not in durations:
+        for item in payload.get('results', []):
+            track_id = str(item.get('id', ''))
+            if not track_id.isdigit():
                 continue
-            thumbs = snippet.get('thumbnails', {})
-            thumb = (thumbs.get('high') or thumbs.get('medium') or thumbs.get('default') or {}).get('url', '')
+            allowed = item.get('audiodownload_allowed') is True
             results.append({
-                'id': video_id, 'videoId': video_id,
-                'title': snippet.get('title', 'Sin título'),
-                'artist': snippet.get('channelTitle', 'Canal de YouTube'),
-                'album': 'YouTube', 'artwork': thumb,
-                'url': 'https://www.youtube.com/watch?v=' + video_id,
-                'durationText': durations[video_id], 'preview': False, 'source': 'YouTube'
+                'id': 'jamendo_' + track_id,
+                'trackId': track_id,
+                'title': item.get('name', 'Sin título'),
+                'artist': item.get('artist_name', 'Artista independiente'),
+                'album': item.get('album_name', ''),
+                'artwork': item.get('album_image') or item.get('image', ''),
+                'duration': item.get('duration', 0),
+                'durationText': (str(int(item.get('duration', 0)) // 60) + ':' +
+                                 str(int(item.get('duration', 0)) % 60).zfill(2)),
+                'audioUrl': item.get('audio', ''),
+                'downloadAllowed': allowed,
+                'license': item.get('license_ccurl', ''),
+                'url': item.get('shareurl', ''),
+                'source': 'Jamendo'
             })
-        return jsonify({'results': results, 'source': 'YouTube Data API v3'})
-    except requests.RequestException as exc:
-        return jsonify({'error': 'No se pudo consultar YouTube: ' + str(exc)}), 502
+        return jsonify({'results': results, 'source': 'Jamendo'})
+    except requests.RequestException:
+        return jsonify({'error': 'No se pudo conectar con el catálogo Jamendo.'}), 502
 
-
-# Caché breve para reducir consumo de cuota de YouTube Data API.
-_YT_CACHE = {}
-_YT_CACHE_TTL = 120
-
-def youtube_api_get(endpoint, params):
-    api_key = os.environ.get('YOUTUBE_API_KEY', '').strip()
-    if not api_key:
-        raise RuntimeError('Falta configurar YOUTUBE_API_KEY en Render.')
-    clean_params = dict(params)
-    clean_params['key'] = api_key
-    cache_key = (endpoint, tuple(sorted((k, str(v)) for k, v in clean_params.items() if k != 'key')))
-    now = time.time()
-    cached = _YT_CACHE.get(cache_key)
-    if cached and now - cached['time'] < _YT_CACHE_TTL:
-        return cached['data']
-    response = requests.get('https://www.googleapis.com/youtube/v3/' + endpoint,
-                            params=clean_params, timeout=15)
-    if response.status_code == 403:
-        raise PermissionError('YouTube rechazó la consulta. Revisa la API key, la cuota y YouTube Data API v3.')
-    response.raise_for_status()
-    data = response.json()
-    _YT_CACHE[cache_key] = {'time': now, 'data': data}
-    if len(_YT_CACHE) > 500:
-        for key, value in list(_YT_CACHE.items()):
-            if now - value['time'] >= _YT_CACHE_TTL:
-                _YT_CACHE.pop(key, None)
-    return data
-
-def youtube_api_error(exc):
-    if isinstance(exc, RuntimeError):
-        return jsonify({'error': str(exc)}), 503
-    if isinstance(exc, PermissionError):
-        return jsonify({'error': str(exc)}), 502
-    if isinstance(exc, requests.RequestException):
-        return jsonify({'error': 'No se pudo consultar YouTube en este momento.'}), 502
-    return jsonify({'error': 'Error interno consultando YouTube.'}), 500
-
-@app.route('/api/youtube/video/<video_id>', methods=['GET'])
-def youtube_video_details(video_id):
-    """Metadatos de un vídeo para LUCK MUSIC; no extrae ni descarga medios."""
+@app.route('/api/music/download/<track_id>', methods=['GET'])
+def music_download(track_id):
+    """Entrega el archivo solo si Jamendo confirma audiodownload_allowed."""
     import re
-    if not re.fullmatch(r'[A-Za-z0-9_-]{11}', video_id):
-        return jsonify({'error': 'ID de YouTube no válido.'}), 400
+    client_id = os.environ.get('JAMENDO_CLIENT_ID', '').strip()
+    if not client_id:
+        return jsonify({'error': 'Falta configurar JAMENDO_CLIENT_ID en Render.'}), 503
+    if not re.fullmatch(r'\d{1,20}', track_id):
+        return jsonify({'error': 'Identificador de canción no válido.'}), 400
     try:
-        data = youtube_api_get('videos', {
-            'part': 'snippet,contentDetails,status,statistics',
-            'id': video_id
-        })
-        items = data.get('items', [])
+        check = requests.get('https://api.jamendo.com/v3.0/tracks/', params={
+            'client_id': client_id, 'format': 'json', 'id': track_id,
+            'include': 'licenses'
+        }, timeout=15)
+        check.raise_for_status()
+        items = check.json().get('results', [])
         if not items:
-            return jsonify({'error': 'Vídeo no encontrado o no disponible.'}), 404
-        item = items[0]
-        if not item.get('status', {}).get('embeddable', False):
-            return jsonify({'error': 'Este vídeo no permite reproducción integrada.'}), 403
-        snippet = item.get('snippet', {})
-        return jsonify({
-            'id': video_id,
-            'title': snippet.get('title', ''),
-            'artist': snippet.get('channelTitle', ''),
-            'channelId': snippet.get('channelId', ''),
-            'description': snippet.get('description', '')[:1200],
-            'thumbnail': (snippet.get('thumbnails', {}).get('high') or
-                          snippet.get('thumbnails', {}).get('medium') or
-                          snippet.get('thumbnails', {}).get('default') or {}).get('url', ''),
-            'publishedAt': snippet.get('publishedAt', ''),
-            'duration': item.get('contentDetails', {}).get('duration', ''),
-            'views': item.get('statistics', {}).get('viewCount'),
-            'url': 'https://www.youtube.com/watch?v=' + video_id,
-            'playable': True,
-            'source': 'YouTube Data API v3'
-        })
-    except Exception as exc:
-        return youtube_api_error(exc)
-
-@app.route('/api/youtube/channel/<channel_id>', methods=['GET'])
-def youtube_channel_details(channel_id):
-    """Información pública de un canal para el catálogo musical."""
-    import re
-    if not re.fullmatch(r'UC[A-Za-z0-9_-]{22}', channel_id):
-        return jsonify({'error': 'ID de canal no válido.'}), 400
-    try:
-        data = youtube_api_get('channels', {
-            'part': 'snippet,statistics,contentDetails',
-            'id': channel_id
-        })
-        items = data.get('items', [])
-        if not items:
-            return jsonify({'error': 'Canal no encontrado.'}), 404
-        item = items[0]
-        snippet = item.get('snippet', {})
-        stats = item.get('statistics', {})
-        return jsonify({
-            'id': channel_id,
-            'title': snippet.get('title', ''),
-            'description': snippet.get('description', '')[:1000],
-            'thumbnail': (snippet.get('thumbnails', {}).get('high') or
-                          snippet.get('thumbnails', {}).get('default') or {}).get('url', ''),
-            'publishedAt': snippet.get('publishedAt', ''),
-            'subscribers': stats.get('subscriberCount'),
-            'videos': stats.get('videoCount'),
-            'source': 'YouTube Data API v3'
-        })
-    except Exception as exc:
-        return youtube_api_error(exc)
-
-@app.route('/api/youtube/related/<video_id>', methods=['GET'])
-def youtube_related_videos(video_id):
-    """Recomendaciones relacionadas mediante YouTube Data API."""
-    import re
-    if not re.fullmatch(r'[A-Za-z0-9_-]{11}', video_id):
-        return jsonify({'error': 'ID de YouTube no válido.'}), 400
-    try:
-        data = youtube_api_get('search', {
-            'part': 'snippet',
-            'type': 'video',
-            'relatedToVideoId': video_id,
-            'maxResults': 12,
-            'regionCode': 'EC'
-        })
-        items = data.get('items', [])
-        ids = [x.get('id', {}).get('videoId') for x in items]
-        ids = [x for x in ids if x]
-        allowed = set()
-        if ids:
-            detail_data = youtube_api_get('videos', {
-                'part': 'contentDetails,status',
-                'id': ','.join(ids)
-            })
-            allowed = {x.get('id') for x in detail_data.get('items', [])
-                       if x.get('status', {}).get('embeddable', False)}
-        results = []
-        for item in items:
-            vid = item.get('id', {}).get('videoId')
-            if not vid or vid not in allowed:
-                continue
-            sn = item.get('snippet', {})
-            thumbs = sn.get('thumbnails', {})
-            results.append({
-                'id': vid,
-                'videoId': vid,
-                'title': sn.get('title', ''),
-                'artist': sn.get('channelTitle', ''),
-                'channelId': sn.get('channelId', ''),
-                'thumbnail': (thumbs.get('high') or thumbs.get('medium') or
-                              thumbs.get('default') or {}).get('url', ''),
-                'url': 'https://www.youtube.com/watch?v=' + vid
-            })
-        return jsonify({'results': results, 'source': 'YouTube Data API v3'})
-    except Exception as exc:
-        return youtube_api_error(exc)
+            return jsonify({'error': 'Canción no encontrada.'}), 404
+        if items[0].get('audiodownload_allowed') is not True:
+            return jsonify({'error': 'El artista no autoriza descargar esta canción.'}), 403
+        return redirect('https://api.jamendo.com/v3.0/tracks/file/?' +
+                        requests.compat.urlencode({
+                            'client_id': client_id, 'id': track_id,
+                            'action': 'download', 'audioformat': 'mp32'
+                        }), code=302)
+    except requests.RequestException:
+        return jsonify({'error': 'No se pudo verificar el permiso de descarga.'}), 502
 
 @app.route('/api/music/lyrics', methods=['GET'])
 def music_lyrics():
