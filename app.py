@@ -415,6 +415,90 @@ def music_lyrics():
     except requests.RequestException as exc:
         return jsonify({'error': 'No se pudo consultar el servicio de letras: ' + str(exc)}), 502
 
+
+@app.route('/api/music/export-mp3', methods=['POST'])
+def music_export_mp3():
+    """Añade metadatos ID3 y portada con marca LUCK a un MP3 aportado por el usuario."""
+    import re
+    from werkzeug.utils import secure_filename
+    from mutagen.id3 import ID3, TIT2, TPE1, TALB, APIC, error as ID3Error
+    from PIL import Image, ImageDraw, ImageFont
+    from io import BytesIO
+
+    audio = request.files.get('audio')
+    title = request.form.get('title', '').strip()[:160]
+    artist = request.form.get('artist', '').strip()[:160]
+    album = request.form.get('album', '').strip()[:160]
+    cover = request.files.get('cover')
+    if not audio or not audio.filename or not audio.filename.lower().endswith('.mp3'):
+        return jsonify({'error': 'Selecciona un archivo MP3 válido.'}), 400
+    if not title or not artist:
+        return jsonify({'error': 'El título y el artista son obligatorios.'}), 400
+
+    work_dir = tempfile.mkdtemp(prefix='luck_music_')
+    try:
+        safe_name = secure_filename(audio.filename) or 'audio.mp3'
+        input_path = os.path.join(work_dir, safe_name)
+        audio.save(input_path)
+        if os.path.getsize(input_path) > 80 * 1024 * 1024:
+            return jsonify({'error': 'El MP3 supera el límite de 80 MB.'}), 413
+
+        image_bytes = None
+        if cover and cover.filename:
+            raw = cover.read(8 * 1024 * 1024 + 1)
+            if len(raw) > 8 * 1024 * 1024:
+                return jsonify({'error': 'La portada supera el límite de 8 MB.'}), 413
+            try:
+                im = Image.open(BytesIO(raw)).convert('RGB')
+                im.thumbnail((900, 900))
+                image_bytes = im
+            except Exception:
+                return jsonify({'error': 'La portada debe ser JPG, PNG o WEBP válida.'}), 400
+        else:
+            image_bytes = Image.new('RGB', (900, 900), (5, 18, 34))
+
+        # Marca visible LUCK MUSIC sobre la portada.
+        image_bytes = image_bytes.resize((900, 900))
+        draw = ImageDraw.Draw(image_bytes, 'RGBA')
+        draw.rounded_rectangle((28, 735, 872, 870), radius=28, fill=(0, 0, 0, 175),
+                               outline=(0, 230, 255, 220), width=4)
+        try:
+            font = ImageFont.truetype('DejaVuSans-Bold.ttf', 64)
+            small = ImageFont.truetype('DejaVuSans.ttf', 28)
+        except Exception:
+            font = ImageFont.load_default()
+            small = ImageFont.load_default()
+        draw.text((60, 750), 'LUCK MUSIC', fill=(0, 240, 255, 255), font=font)
+        draw.text((64, 830), 'PERSONAL AUDIO EDITION', fill=(255, 255, 255, 230), font=small)
+        image_out = BytesIO()
+        image_bytes.save(image_out, format='JPEG', quality=90)
+        image_data = image_out.getvalue()
+
+        try:
+            tags = ID3(input_path)
+        except ID3Error:
+            tags = ID3()
+        tags.delall('TIT2')
+        tags.delall('TPE1')
+        tags.delall('TALB')
+        tags.delall('APIC')
+        tags.add(TIT2(encoding=3, text=title))
+        tags.add(TPE1(encoding=3, text=artist))
+        if album:
+            tags.add(TALB(encoding=3, text=album))
+        tags.add(APIC(encoding=3, mime='image/jpeg', type=3, desc='LUCK MUSIC cover', data=image_data))
+        tags.save(input_path, v2_version=3)
+
+        output_name = re.sub(r'[^A-Za-z0-9._ -]+', '_', f'{title} - {artist}')[:150] + '.mp3'
+        return send_file(input_path, mimetype='audio/mpeg', as_attachment=True,
+                         download_name=output_name, max_age=0)
+    except Exception as exc:
+        return jsonify({'error': 'No se pudo etiquetar el MP3: ' + str(exc)}), 500
+    finally:
+        # El archivo se envía desde disco; su limpieza se realiza al terminar la respuesta.
+        pass
+
+
 @app.route('/health')
 def health():
     """Endpoint para verificar que el servidor est谩 funcionando"""
