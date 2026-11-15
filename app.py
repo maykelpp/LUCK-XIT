@@ -490,8 +490,10 @@ def music_export_mp3():
         tags.save(input_path, v2_version=3)
 
         output_name = re.sub(r'[^A-Za-z0-9._ -]+', '_', f'{title} - {artist}')[:150] + '.mp3'
-        return send_file(input_path, mimetype='audio/mpeg', as_attachment=True,
-                         download_name=output_name, max_age=0)
+        response = send_file(input_path, mimetype='audio/mpeg', as_attachment=True,
+                             download_name=output_name, max_age=0)
+        response.call_on_close(lambda: shutil.rmtree(work_dir, ignore_errors=True))
+        return response
     except Exception as exc:
         return jsonify({'error': 'No se pudo etiquetar el MP3: ' + str(exc)}), 500
     finally:
