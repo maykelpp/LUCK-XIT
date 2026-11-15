@@ -359,77 +359,49 @@ def download():
     except Exception as e:
         return jsonify({'error': f'Error en la descarga: {str(e)}'}), 500
 
-@app.route('/api/music/search', methods=['GET'])
-def music_search():
-    """Busca catálogo Jamendo y respeta la autorización de descarga por canción."""
-    query = request.args.get('q', '').strip()[:160]
-    client_id = os.environ.get('JAMENDO_CLIENT_ID', '').strip()
-    if not query:
-        return jsonify({'results': []})
-    if not client_id:
-        return jsonify({'error': 'Falta configurar JAMENDO_CLIENT_ID en Render.'}), 503
+@app.route('/api/music/resolve', methods=['POST'])
+def music_resolve():
+    """Resuelve una URL de audio compatible con yt-dlp; no descarga archivos."""
+    from urllib.parse import urlparse
+    data = request.get_json(silent=True) or request.form
+    url = (data.get('url') or '').strip()
+    if not url or len(url) > 2048:
+        return jsonify({'error': 'Pega una URL válida (máximo 2048 caracteres).'}), 400
+    parsed = urlparse(url)
+    if parsed.scheme not in ('http', 'https') or not parsed.hostname:
+        return jsonify({'error': 'Solo se aceptan enlaces HTTP o HTTPS.'}), 400
+    host = parsed.hostname.lower().split(':')[0]
+    if host == 'youtube.com' or host.endswith('.youtube.com') or host == 'youtu.be' or host.endswith('.youtu.be'):
+        return jsonify({'error': 'YouTube no está habilitado en este reproductor.'}), 403
     try:
-        response = requests.get('https://api.jamendo.com/v3.0/tracks/', params={
-            'client_id': client_id, 'format': 'json', 'search': query,
-            'limit': 25, 'audioformat': 'mp32', 'include': 'licenses'
-        }, timeout=15)
-        response.raise_for_status()
-        payload = response.json()
-        if payload.get('headers', {}).get('status') != 'success':
-            return jsonify({'error': 'Jamendo no pudo completar la búsqueda.'}), 502
-        results = []
-        for item in payload.get('results', []):
-            track_id = str(item.get('id', ''))
-            if not track_id.isdigit():
-                continue
-            allowed = item.get('audiodownload_allowed') is True
-            results.append({
-                'id': 'jamendo_' + track_id,
-                'trackId': track_id,
-                'title': item.get('name', 'Sin título'),
-                'artist': item.get('artist_name', 'Artista independiente'),
-                'album': item.get('album_name', ''),
-                'artwork': item.get('album_image') or item.get('image', ''),
-                'duration': item.get('duration', 0),
-                'durationText': (str(int(item.get('duration', 0)) // 60) + ':' +
-                                 str(int(item.get('duration', 0)) % 60).zfill(2)),
-                'audioUrl': item.get('audio', ''),
-                'downloadAllowed': allowed,
-                'license': item.get('license_ccurl', ''),
-                'url': item.get('shareurl', ''),
-                'source': 'Jamendo'
-            })
-        return jsonify({'results': results, 'source': 'Jamendo'})
-    except requests.RequestException:
-        return jsonify({'error': 'No se pudo conectar con el catálogo Jamendo.'}), 502
+        opts = {'quiet': True, 'no_warnings': True, 'noplaylist': True, 'skip_download': True,
+                'extract_flat': False, 'socket_timeout': 20}
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+        if not info:
+            return jsonify({'error': 'La fuente no devolvió información reproducible.'}), 422
+        formats = info.get('formats') or []
+        audio_formats = [f for f in formats if f.get('url') and
+                         (f.get('acodec') not in (None, 'none'))]
+        chosen = max(audio_formats, key=lambda f: (
+            f.get('abr') or 0, f.get('asr') or 0, f.get('filesize') or 0
+        ), default=None)
+        audio_url = chosen.get('url') if chosen else info.get('url')
+        if not audio_url:
+            return jsonify({'error': 'La fuente no ofrece un flujo de audio directo.'}), 422
+        duration = info.get('duration') or 0
+        return jsonify({'success': True, 'track': {
+            'id': str(info.get('id') or url), 'title': info.get('title') or 'Audio sin título',
+            'artist': info.get('artist') or info.get('uploader') or 'Artista desconocido',
+            'album': info.get('album') or '', 'artwork': info.get('thumbnail') or '',
+            'duration': duration, 'durationText': (str(int(duration)//60)+':'+str(int(duration)%60).zfill(2)) if duration else '',
+            'audioUrl': audio_url, 'sourceUrl': url, 'downloadAllowed': False,
+            'source': host
+        }})
+    except Exception as exc:
+        app.logger.warning('No se pudo resolver fuente de audio: %s', exc)
+        return jsonify({'error': 'No se pudo abrir ese enlace. Comprueba que sea público y compatible con yt-dlp.'}), 422
 
-@app.route('/api/music/download/<track_id>', methods=['GET'])
-def music_download(track_id):
-    """Entrega el archivo solo si Jamendo confirma audiodownload_allowed."""
-    import re
-    client_id = os.environ.get('JAMENDO_CLIENT_ID', '').strip()
-    if not client_id:
-        return jsonify({'error': 'Falta configurar JAMENDO_CLIENT_ID en Render.'}), 503
-    if not re.fullmatch(r'\d{1,20}', track_id):
-        return jsonify({'error': 'Identificador de canción no válido.'}), 400
-    try:
-        check = requests.get('https://api.jamendo.com/v3.0/tracks/', params={
-            'client_id': client_id, 'format': 'json', 'id': track_id,
-            'include': 'licenses'
-        }, timeout=15)
-        check.raise_for_status()
-        items = check.json().get('results', [])
-        if not items:
-            return jsonify({'error': 'Canción no encontrada.'}), 404
-        if items[0].get('audiodownload_allowed') is not True:
-            return jsonify({'error': 'El artista no autoriza descargar esta canción.'}), 403
-        return redirect('https://api.jamendo.com/v3.0/tracks/file/?' +
-                        requests.compat.urlencode({
-                            'client_id': client_id, 'id': track_id,
-                            'action': 'download', 'audioformat': 'mp32'
-                        }), code=302)
-    except requests.RequestException:
-        return jsonify({'error': 'No se pudo verificar el permiso de descarga.'}), 502
 
 @app.route('/api/music/lyrics', methods=['GET'])
 def music_lyrics():
