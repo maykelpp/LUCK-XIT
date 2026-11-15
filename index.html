@@ -720,6 +720,11 @@
     .lx-library-nav.no-motion,.lx-library-nav.no-motion::after,.lx-library-nav.no-motion button{animation:none!important;transition:none!important}
     @media(prefers-reduced-motion:reduce){.lx-library-nav,.lx-library-nav::after,.lx-library-nav button{animation:none!important;transition:none!important}}
 
+
+.lx-module-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.lx-module-card{display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-height:145px;padding:17px;border:1px solid rgba(0,250,255,.28);border-radius:15px;background:linear-gradient(145deg,rgba(15,35,65,.88),rgba(35,10,55,.72));color:#fff;text-align:left;text-transform:none;letter-spacing:0;font:inherit}
+.lx-module-card strong{font:700 .95rem 'Orbitron',sans-serif}.lx-module-card small{font-size:.75rem;line-height:1.5;color:#b8c5df}.lx-module-icon{font-size:1.8rem;color:#00faff}
+@media(max-width:480px){.lx-module-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -824,11 +829,31 @@
       <p id="status"></p>
 
       <div class="lx-library-nav">
-        <button type="button" id="lxShowMain" class="active">Descargador</button>
+        <button type="button" id="lxShowMain" class="active">Inicio</button>
+        <button type="button" id="lxShowModules">Módulos</button>
         <button type="button" id="lxShowDownloads">Descargas</button>
         <button type="button" id="lxShowHistory">Historial</button>
         <button type="button" id="lxShowSettings">Ajustes</button>
       </div>
+
+      <section class="lx-library" id="lxModules">
+        <h3>GALERÍA DE MÓDULOS</h3>
+        <p>Explora las herramientas disponibles en LUCK XIT.</p>
+        <div class="lx-module-grid">
+          <button type="button" class="lx-module-card" onclick="lxView('music')">
+            <span class="lx-module-icon">♫</span><strong>LUCK MUSIC</strong>
+            <small>Reproductor, biblioteca, playlists y letras sincronizadas.</small>
+            <small>ABRIR MÓDULO →</small>
+          </button>
+          <div class="lx-module-card"><span class="lx-module-icon">＋</span><strong>Más módulos</strong><small>Nuevas herramientas podrán añadirse aquí.</small><small>PRÓXIMAMENTE</small></div>
+        </div>
+      </section>
+      <section class="lx-library" id="lxMusic">
+        <button type="button" class="lx-policy-link" onclick="lxView('modules')">← Volver a módulos</button>
+        <h3 style="margin-top:14px">LUCK MUSIC</h3>
+        <p>Espacio de música de LUCK XIT. Próxima fase: reproductor, biblioteca, listas y consulta automática de letras sincronizadas cuando estén disponibles.</p>
+      </section>
+
       <section class="lx-library" id="lxDownloads"><h3>DESCARGAS</h3><div id="lxDownloadsList"></div></section>
       <section class="lx-library" id="lxHistory"><h3>HISTORIAL</h3><div id="lxHistoryList"></div></section>      
       <section class="lx-library" id="lxSettings"><h3>AJUSTES</h3>
@@ -891,25 +916,30 @@
         downloads:'Administra tus archivos descargados',
         history:'Consulta tus descargas recientes',
         settings:'Personaliza tu experiencia en LUCK XIT',
-        privacy:'Conoce cómo se maneja tu información'
+        privacy:'Conoce cómo se maneja tu información',
+        modules:'Explora los módulos de LUCK XIT',
+        music:'LUCK MUSIC · Módulo de música'
       };
       document.getElementById('lxSubtitle').textContent=subtitles[view]||subtitles.main;
       document.getElementById('preview').style.display=main?'':'none';
       document.querySelector('.input-wrapper').style.display=main?'':'none';
       document.querySelector('.preview-btn').style.display=main?'':'none';
       document.querySelector('.buttons').style.display=main?'':'none';
-      ['lxDownloads','lxHistory','lxSettings','lxPrivacy'].forEach(id=>document.getElementById(id).classList.remove('active'));
+      ['lxDownloads','lxHistory','lxSettings','lxPrivacy','lxModules','lxMusic'].forEach(id=>document.getElementById(id).classList.remove('active'));
       if(view==='downloads')document.getElementById('lxDownloads').classList.add('active');
       if(view==='history')document.getElementById('lxHistory').classList.add('active');
       if(view==='settings')document.getElementById('lxSettings').classList.add('active');
       if(view==='privacy')document.getElementById('lxPrivacy').classList.add('active');
-      ['lxShowMain','lxShowDownloads','lxShowHistory','lxShowSettings'].forEach(id=>document.getElementById(id).classList.toggle('active',(id==='lxShowMain'&&view==='main')||(id==='lxShowDownloads'&&view==='downloads')||(id==='lxShowHistory'&&view==='history')||(id==='lxShowSettings'&&view==='settings')));
+      if(view==='modules')document.getElementById('lxModules').classList.add('active');
+      if(view==='music')document.getElementById('lxMusic').classList.add('active');
+      ['lxShowMain','lxShowModules','lxShowDownloads','lxShowHistory','lxShowSettings'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('active',(id==='lxShowMain'&&view==='main')||(id==='lxShowModules'&&(view==='modules'||view==='music'))||(id==='lxShowDownloads'&&view==='downloads')||(id==='lxShowHistory'&&view==='history')||(id==='lxShowSettings'&&view==='settings'));});
       if(view==='downloads')lxRender('downloads');
       if(view==='history')lxRender('history');
     }
     async function lxPreviewAgain(i){const x=lxHistory[i];if(!x)return;document.getElementById('url').value=x.url;lxView('main');await preview();}
     async function lxDownloadAgain(which,i){const x=(which==='history'?lxHistory:lxDownloads)[i];if(!x)return;document.getElementById('url').value=x.url;lxView('main');await download(x.kind);}
     document.getElementById('lxShowMain').onclick=()=>lxView('main');
+    document.getElementById('lxShowModules').onclick=()=>lxView('modules');
     document.getElementById('lxShowDownloads').onclick=()=>lxView('downloads');
     document.getElementById('lxShowHistory').onclick=()=>lxView('history');
     document.getElementById('lxShowSettings').onclick=()=>lxView('settings');
